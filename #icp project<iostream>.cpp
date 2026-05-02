@@ -1,0 +1,278 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+using namespace std;
+
+int id[10] = { 1,2,3,4,5,6,7,8,9,10 };
+string vehicles[10] = {
+    "Honda Civic","Toyota Vitz","HONDA 125","Suzuki Alto","Tractor",
+    "Toyota Revo GR","HONDA CD70","Fortuner","Toyota Prado","Yamaha YBR"
+};
+int vehiclerent[10] = { 5000,3500,1000,2500,8000,60000,600,60000,90000,4000 };
+int rentedstatus[10];  
+int totalvehicles = 10;
+
+
+void loadData() {
+    ifstream fin("status.txt");
+    if (!fin) {
+        for (int i = 0; i < 10; i++) {
+            rentedstatus[i] = 0;
+            return;
+        }
+    }
+    for (int i = 0; i < 10; i++) { fin >> rentedstatus[i]; }
+    fin.close();
+}
+
+
+void saveData() {
+    ofstream fout("status.txt");
+    for (int i = 0; i < 10; i++) { fout << rentedstatus[i] << endl; }
+    fout.close();
+}
+void saveRentedCustomer(string name, long long cnic, long long phone, int id1, int days, long long total) {
+    ofstream fout("rental_history.txt", ios::app);
+
+    fout << "----------------------------------------\n";
+    fout << "Customer Name: " << name << "\n";
+    fout << "CNIC: " << cnic << "\n";
+    fout << "Phone: " << phone << "\n";
+    fout << "Vehicle: " << vehicles[id1 - 1] << "\n";
+    fout << "Vehicle ID: " << id1 << "\n";
+    fout << "Days Rented: " << days << "\n";
+    fout << "Total Bill: " << total << "\n";
+    fout << "----------------------------------------\n\n";
+
+    fout.close();
+}
+
+void showvehiclesandrent() {
+    cout << "\n=========== Available Vehicles ===========\n";
+    bool found = false;
+
+    for (int i = 0; i < totalvehicles; i++) {
+        if (rentedstatus[i] == 0) {
+            cout << "ID: " << id[i]
+                << " | Vehicle: " << vehicles[i] << vehiclerent[i] <<"per day" << endl;
+            found = true;
+        }
+    }
+
+    if (!found) cout << "No vehicles available.\n";
+}
+
+void rentvehicle() {
+    string name;
+    long long cnic, phone;
+    int id1, days;
+
+    cout << "Enter your name: ";
+    cin >> name;
+
+    while (true) {
+        cout << "Enter CNIC (13 digits): ";
+        cin >> cnic;
+
+        long long temp = cnic;
+        int count = 0;
+        while (temp > 0) { temp /= 10; count++; }
+
+        if (count == 13) break;
+        cout << "Invalid CNIC! Must be 13 digits.\n";
+    }
+
+    while (true) {
+        cout << "Enter phone number (11 digits): ";
+        cin >> phone;
+
+        long long temp = phone;
+        int count = 0;
+        while (temp > 0) { temp /= 10; count++; }
+
+        if (count == 10) break;
+        cout << "Invalid Phone Number! Must be 11 digits.\n";
+    }
+
+    cout << "Enter Vehicle ID to rent: ";
+    cin >> id1;
+
+    if (id1 < 1 || id1 > 10) {
+        cout << "Invalid Vehicle ID!\n";
+        return;
+    }
+
+    if (rentedstatus[id1 - 1] == 1) {
+        cout << "Vehicle already rented.\n";
+        return;
+    }
+
+    cout << "Enter number of days: ";
+    cin >> days;
+
+    rentedstatus[id1 - 1] = 1;
+    saveData();
+    long long total = days * vehiclerent[id1 - 1];
+
+    saveRentedCustomer(name, cnic, phone, id1, days, total);
+
+    cout << "\n========== BILL RECEIPT ==========\n";
+    cout << "Name: " << name << endl;
+    cout << "CNIC: " << cnic << endl;
+    cout << "Phone: " << phone << endl;
+    cout << "Vehicle: " << vehicles[id1 - 1] << endl;
+    cout << "Days: " << days << endl;
+    cout << "Total Bill: " << total << endl;
+    cout << "Vehicle status updated to RENTED.\n";
+}
+
+void returnvehicle() {
+    int id1;
+
+    cout << "Enter Vehicle ID to return: ";
+    cin >> id1;
+
+    if (id1 < 1 || id1 > 10) {
+        cout << "Invalid Vehicle ID.\n";
+        return;
+    }
+
+    if (rentedstatus[id1 - 1] == 0) {
+        cout << "This vehicle was not rented.\n";
+        return;
+    }
+
+    rentedstatus[id1 - 1] = 0;
+    saveData();
+
+    cout << "Vehicle returned successfully: " << vehicles[id1 - 1] << endl;
+}
+
+void adminView() {
+    ifstream fin("rental_history.txt");
+
+    if (!fin) {
+        cout << "No rental history found.\n";
+        return;
+    }
+
+    cout << "\n========== RENTAL HISTORY ==========\n\n";
+
+    string line;
+    while (getline(fin, line)) {
+        cout << line << endl;
+    }
+
+    fin.close();
+}
+
+void showAllVehicleStatus() {
+    cout << "\n========== VEHICLE STATUS (Admin View) ==========\n";
+    for (int i = 0; i < totalvehicles; i++) {
+        cout << "ID: \t" << id[i]
+            << " | Vehicle: \t" << vehicles[i]
+            << "\t | Rent: " << vehiclerent[i]
+            << "\t | Status: " << (rentedstatus[i] == 1 ? "\tRented" : "Available")
+            << endl;
+    }
+}
+
+void resetAll() {
+    for (int i = 0; i < totalvehicles; i++)
+        rentedstatus[i] = 0;
+
+    saveData();
+
+    ofstream clear("rental_history.txt", ios::trunc);
+    clear.close();
+
+    cout << "All data reset successfully.\n";
+}
+
+void adminMenu() {
+    int choice;
+    while (true) {
+        cout << "\n========== ADMIN PANEL ==========\n";
+        cout << "1. View Rental History\n";
+        cout << "2. View Vehicle Status\n";
+        cout << "3. Reset All Data\n";
+        cout << "4. Exit Admin Menu\n";
+        cout << "Enter choice: ";
+        cin >> choice;
+
+        switch (choice) {
+        case 1: adminView(); break;
+        case 2: showAllVehicleStatus(); break;
+        case 3: resetAll(); break;
+        case 4: return;
+        default: cout << "Invalid option.\n";
+        }
+    }
+}
+
+void adminLogin() {
+    string user, pass;
+
+    cout << "\n========== ADMIN LOGIN ==========\n";
+
+    for (int attempt = 1; attempt <= 3; attempt++) {
+        cout << "Enter Username: ";
+        cin >> user;
+        cout << "Enter Password: ";
+        cin >> pass;
+
+        if (user == "admin" && pass == "1234") {
+            cout << "Login successful.\n";
+            adminMenu();
+            return;
+        }
+
+        cout << "Wrong credentials! Attempts left: " << (3 - attempt) << endl;
+    }
+
+    cout << "Too many failed attempts.\n";
+}
+
+void user() {
+    int choice;
+    while (true) {
+        cout << "\n========== USER MENU ==========\n";
+        cout << "1. Show Available Vehicles\n";
+        cout << "2. Rent a Vehicle\n";
+        cout << "3. Return a Vehicle\n";
+        cout << "4. Exit\n";
+        cin >> choice;
+
+        switch (choice) {
+        case 1: showvehiclesandrent(); break;
+        case 2: rentvehicle(); break;
+        case 3: returnvehicle(); break;
+        case 4: return;
+        default: cout << "Invalid Choice!\n";
+        }
+    }
+}
+
+int main() {
+    loadData();
+
+    int login;
+    while (true) {
+        cout << "\n========== MAIN MENU ==========\n";
+        cout << "1 for: Admin Login\n";
+        cout << "2 for: User Menu\n";
+        cout << "3 for: Exit Program\n";
+        cout << "Enter choice: ";
+        cin >> login;
+
+        switch (login) {
+        case 1: adminLogin(); break;
+        case 2: user(); break;
+        case 3:
+            cout << "!!!!!!!!!!!!!Thank you for using the program!!!!!!!!!\n";
+            return 0;
+        default:
+            cout << "Invalid choice.\n";
+        }
+    }
+}
